@@ -8,15 +8,31 @@ const quizData = [
 
 const quizContainer = document.getElementById("quiz");
 const submitButton = document.getElementById("submit");
+const restartButton = document.getElementById("restart");
 const resultContainer = document.getElementById("result");
+const timerElement = document.getElementById("timer");
 
+let shuffledQuizData = [];
 let timerInterval;
 
+// Function to shuffle questions
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+// Load quiz questions
 function loadQuiz() {
-    quizContainer.innerHTML = ""; 
-    quizData.forEach((item, index) => {
+    quizContainer.innerHTML = "";
+    shuffledQuizData = [...quizData]; // Copy the original data
+    shuffleArray(shuffledQuizData); // Shuffle the questions
+
+    shuffledQuizData.forEach((item, index) => {
         const questionElement = document.createElement("div");
         questionElement.classList.add("question");
+        questionElement.setAttribute("data-index", index); // Track original index
         questionElement.innerHTML = `<p>${index + 1}. ${item.question}</p>`;
         
         item.options.forEach(option => {
@@ -28,55 +44,74 @@ function loadQuiz() {
 
         quizContainer.appendChild(questionElement);
     });
+
+    resultContainer.innerText = ""; // Clear previous result
+    submitButton.disabled = false; // Enable submit button
 }
 
+// Start the countdown timer
 function startTimer(duration) {
     let timeLeft = duration;
-    const timerElement = document.getElementById("timer");
+    timerElement.textContent = formatTime(timeLeft);
 
     timerInterval = setInterval(() => {
-        let minutes = Math.floor(timeLeft / 60);
-        let seconds = timeLeft % 60;
+        timeLeft--;
+        timerElement.textContent = formatTime(timeLeft);
 
-        timerElement.textContent = 
-            (minutes < 10 ? "0" + minutes : minutes) + ":" + 
-            (seconds < 10 ? "0" + seconds : seconds);
-
-        if (timeLeft === 0) {
+        if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            calculateScore(); 
+            calculateScore();
             disableQuiz();
             submitButton.disabled = true;
         }
-        timeLeft--;
     }, 1000);
 }
 
-function calculateScore() {
-    let score = 0;
-    quizData.forEach((item, index) => {
-        const questionElement = document.querySelectorAll(".question")[index];
-        const selectedOption = document.querySelector(`input[name="q${index}"]:checked`);
-
-        if (selectedOption) {
-            if (selectedOption.value === item.answer) {
-                score++;
-                questionElement.style.backgroundColor = "lightgreen"; 
-            } else {
-                questionElement.style.backgroundColor = "lightcoral"; 
-            }
-        } else {
-            questionElement.style.backgroundColor = "lightcoral"; 
-        }
-    });
-    resultContainer.innerText = `You scored ${score} out of ${quizData.length} correctly.`;
+// Format time as MM:SS
+function formatTime(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let remainingSeconds = seconds % 60;
+    return (minutes < 10 ? "0" + minutes : minutes) + ":" + (remainingSeconds < 10 ? "0" + remainingSeconds : remainingSeconds);
 }
 
+// Calculate score and show correct/wrong answers
+function calculateScore() {
+    let score = 0;
+    const questionElements = document.querySelectorAll(".question");
+
+    questionElements.forEach((questionElement, index) => {
+        const selectedOption = document.querySelector(`input[name="q${index}"]:checked`);
+        const originalIndex = parseInt(questionElement.getAttribute("data-index"));
+
+        if (selectedOption) {
+            if (selectedOption.value === shuffledQuizData[originalIndex].answer) {
+                score++;
+                questionElement.style.backgroundColor = "lightgreen"; // Correct answer
+            } else {
+                questionElement.style.backgroundColor = "lightcoral"; // Incorrect answer
+            }
+        } else {
+            questionElement.style.backgroundColor = "lightcoral"; // No answer selected
+        }
+    });
+
+    resultContainer.innerText = `You scored ${score} out of ${shuffledQuizData.length} correctly.`;
+}
+
+// Disable all quiz options after submission
 function disableQuiz() {
     const options = document.querySelectorAll("input[type='radio']");
     options.forEach(option => option.disabled = true);
 }
 
+// Restart the quiz with new shuffled questions
+function restartQuiz() {
+    clearInterval(timerInterval); // Stop existing timer
+    loadQuiz();
+    startTimer(60); // Reset timer to 60 seconds
+}
+
+// Event Listeners
 submitButton.addEventListener("click", () => {
     clearInterval(timerInterval);
     calculateScore();
@@ -84,7 +119,10 @@ submitButton.addEventListener("click", () => {
     submitButton.disabled = true;
 });
 
+restartButton.addEventListener("click", restartQuiz);
+
+// Initialize quiz on page load
 window.onload = () => {
     loadQuiz();
-    startTimer(60); 
+    startTimer(60);
 };
