@@ -1,4 +1,4 @@
-# Interactive Quiz
+# Interactive Quiz(https://hemanth0804.github.io/project-quiz/)
 
 ## Description
 This project is a simple interactive quiz web application built using HTML, CSS, and JavaScript. It features a timer, multiple-choice questions, and automatic score calculation upon submission.
